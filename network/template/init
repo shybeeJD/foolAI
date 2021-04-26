@@ -1,0 +1,3 @@
+def Network(nn.Module):
+    def __init__(self):
+        super(Network, self).__init__():

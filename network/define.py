@@ -1,8 +1,10 @@
 import torch as torch
 import json
 import math
-class Conv2d():
-    def __init__(self,jsonData):
+class Net():
+    def __init__(self,jsonData=''):
+        with open('./network/template/module.conf')as f:
+            jsonData=f.read()
         self.data=json.loads(jsonData)
     def get_layer(self):
         if self.data['type']=='Conv2d':
@@ -33,7 +35,88 @@ class Conv2d():
             pass
         elif data["type"]=='Linear':
             res=[-1,int(data['output_num'])]
+        else:
+            return input
         return res
+    @staticmethod
+    def code_write(path,table,content):
+        with open(path,'a') as f:
+            f.write('    '*table+content+'\n')
+    def code_gen(self):
+        path='./network/template/net.py'
+
+        with open('./network/template/net.py','w') as f:
+            with open('./network/template/head', 'r') as f1:
+                content = f1.read()
+                print(111)
+                print(content)
+                f.write(content)
+            with open('./network/template/init', 'r') as f1:
+                content = f1.read()
+                f.write(content)
+            input_str=self.data['input_size'].replace('(', '').replace(')', '').split(',')
+            input=list(map(int,input_str))
+            for i,layer in enumerate(self.data['layers']):
+                if layer['type']=='Conv':
+                    print('self.layer%d=nn.Conv%dd(in_channels=%s,out_channels=%s,kernel_size=%s,'
+                                          'stride=%s,padding=%s,dilation=%s)'
+                                   %(i,layer['dimension'],input[1],layer['out_channels'],layer['kerner_size'],
+                                     layer['stride'],layer['padding'],layer['dilation']))
+                    Net.code_write(path,2,'self.layer%d=nn.Conv%dd(in_channels=%s,out_channels=%s,kernel_size=%s,'
+                                          'stride=%s,padding=%s,dilation=%s)'
+                                   %(i,layer['dimension'],input[1],layer['out_channels'],layer['kerner_size'],
+                                     layer['stride'],layer['padding'],layer['dilation']))
+
+                elif layer['type']=='MaxPool':
+                    Net.code_write(path,2,'self.layer%d=nn.MaxPool%dd(kernel_size=%s, stride=%s, padding=%s, '
+                                          'dilation=%s)'%(i,layer['dimension'],layer['kerner_size'],
+                                     layer['stride'],layer['padding'],layer['dilation']))
+
+                elif layer['type']=='AvgPool':
+                    Net.code_write(path, 2, 'self.layer%d=nn.AvgPool%dd(kernel_size=%s, stride=%s, padding=%s, '
+                                            'dilation=%s)' % (i, layer['dimension'], layer['kerner_size'],
+                                                              layer['stride'], layer['padding'], layer['dilation']))
+                    pass
+                elif layer['type']=='ReLU':
+                    Net.code_write(path,2,'self.layer%d=nn.ReLU()'%(i))
+                    pass
+                elif layer['type'] == 'ReLU6':
+                    Net.code_write(path, 2, 'self.layer%d=nn.ReLU6()' % (i))
+                    pass
+                elif layer['type'] == 'ELU':
+                    Net.code_write(path, 2, 'self.layer%d=nn.ELU()' % (i))
+                    pass
+                elif layer['type'] == 'PReLU':
+                    Net.code_write(path, 2, 'self.layer%d=nn.PReLU()' % (i))
+                    pass
+                elif layer['type'] == 'Sigmoid':
+                    Net.code_write(path, 2, 'self.layer%d=nn.Sigmoid()' % (i))
+                    pass
+                elif layer['type'] == 'Threshold':
+                    Net.code_write(path, 2, 'self.layer%d=nn.Threshold(threshold=%s, value=%s)' %
+                                   (i,layer['threshold'],layer['value']))
+                    pass
+                elif layer['type'] == 'Tanh':
+                    Net.code_write(path, 2, 'self.layer%d=nn.Tanh()' % (i))
+                    pass
+                elif layer['type'] == 'LogSigmoid':
+                    Net.code_write(path, 2, 'self.layer%d=nn.LogSigmoid()' % (i))
+                    pass
+                elif layer['type'] == 'Softmax':
+                    Net.code_write(path, 2, 'self.layer%d=nn.Softmax()' % (i))
+                    pass
+                elif layer['type'] == 'BatchNorm':
+                    Net.code_write(path, 2, 'self.layer%d=nn.BatchNorm%dd(%s)' % (i,layer['dimension'],layer['num_features']))
+                    pass
+                elif layer['type'] == 'Linear':
+                    Net.code_write(path, 2, 'self.layer%d=nn.Linear(%s,%s)' % (i,input[2],layer['output_num']))
+                    pass
+                input=Net.forward(input,layer)
+                print(input,i)
+                pass
+            with open('./network/template/formwrd', 'r') as f1:
+                content = f1.read()
+                f.write(content)
 
 jsonData = '{' \
            '"type":"Conv2d",' \
@@ -47,4 +130,6 @@ jsondata='{"input_size":"(3,28,28)","layers":[{"type":"Conv1d","out_channels":2,
 
 data=json.loads(jsondata)
 print(data['layers'][1])
-print(Conv2d.forward([20, 16, 50, 100],data['layers'][1]),)
+print(Net.forward([20, 16, 50, 100],data['layers'][1]),)
+a=Net()
+a.code_gen()
