@@ -1,0 +1,32 @@
+def train(self, epoch=10, batch_size=16, train_scale=0.8, LR=0.01):
+    dataset = AutoDataset()
+    train_size = int(len(dataset) * train_scale)
+    test_size = len(dataset) - train_size
+    train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
+    train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
+                                               batch_size=batch_size,
+                                               shuffle=True)
+    test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
+                                              batch_size=batch_size,
+                                              shuffle=True)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    net=Network()
+
+    loss_function=nn.CrossEntropyLoss()
+    optimizer=optim.Adam(net.parameters(),lr=LR)
+    for ep in range(epoch):
+        running_loss=0.0
+        for step,data in enumerate(train_loader,start=0):
+            inputs,labels=data
+            optimizer.zero_grad()
+            outputs=net(inputs)
+            loss=loss_function(outputs,labels)
+            loss.backward()
+            optimizer.step()
+            running_loss+=loss.item()
+
+            if step%500==499:
+                redis_set('%d,%d,%.03f'%(ep+1,step,running_loss/500))
+
+

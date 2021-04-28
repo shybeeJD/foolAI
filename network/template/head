@@ -6,5 +6,3 @@ import numpy as np
 import torch.optim as optim
 from torchsummary import summary
 import os
-class LeNet(nn.Module):
-    def __init__(self):
